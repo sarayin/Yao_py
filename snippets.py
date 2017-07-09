@@ -4,7 +4,10 @@
 #====================================================#
 # Pull without entering message:
 git pull --no-edit
-
+# removes the file from the repo but also deletes it from the local file system.
+git rm file.txt
+#To remove the file from the repo and not delete it from the local file system use:
+git rm --cached file.txt
 #====================================================#
 # Fitting
 #====================================================#
@@ -78,9 +81,23 @@ dailyDF = dailyDF.set_index(days)
 #====================================================#
 #--------Reload imported module
 reload(my_module)
+#-------Time your function
+from timeit import default_timer as timer
 
+start = timer()
+# ...
+end = timer()
+print(end - start)
 #====================================================#
 # Matplotlib
 #====================================================#
 #Plotting lines with markers
 plt.plot(range(10), '--bo')
+#====================================================#
+# Numpy
+#====================================================#
+To generate a random order of this set, you could use the random.choice function, e.g.:
+from numpy import random
+#starting list that needs to be sorted
+b = list([5, 0, 9, 8, 7, 1, 4, 3, 2, 6])
+a = random.choice(b, size=10, replace=False)
