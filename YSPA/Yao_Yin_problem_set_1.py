@@ -1,6 +1,6 @@
 import numpy as np
 import math
-from tqdm import tqdm
+#from tqdm import tqdm
 print 'Problem Set 1 by Yao Yin'
 #============Problem 1==============#
 def calculate_pi(num):
@@ -55,13 +55,13 @@ comb_times = []
 bubble_steps = []
 comb_steps = []
 sorted_lists = []
-for i in tqdm(range(1000)):
+for i in range(1000):
     l = np.random.randint(low = -100, high = 100, size = 10)
     start = timer()
     bubble_steps.append(bubble_sort(l)[1])
     end = timer()
     bubble_times.append(end - start)
-for i in tqdm(range(1000)):
+for i in range(1000):
     l = np.random.randint(low = -100, high = 100, size = 10)
     start = timer()
     comb_steps.append(comb_sort(l)[1])
@@ -143,7 +143,7 @@ while t < 10:
      rate(100)
      ball.pos = ball.pos + ball.velocity*deltat
      ball.trail.append(pos=ball.pos)
-     ball.velocity = ball.velocity + ball.accel*deltat 
+     ball.velocity = ball.velocity + ball.accel*deltat
      if ball.pos.x > wallR.pos.x:
           ball.velocity.x = -1.0*ball.velocity.x
      if ball.pos.x < wallL.pos.x:
