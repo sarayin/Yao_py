@@ -10,7 +10,6 @@ dec = np.radians(-23.4373)
 HA = np.arccos(-sin(lat)*sin(dec)/(cos(lat)*cos(dec)))
 A = np.arcsin(-cos(dec)*sin(HA))
 """
-
 # ======================
 # Problem 2
 # ======================
