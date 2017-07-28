@@ -21,7 +21,8 @@ def degrees_to_dms(degrees):
     degrees = totalSeconds // (60. * 60.)
     return '%.d:%.d:%.2f' % (degrees,minutes,seconds)
 #The function that will convert the Ra and Dec from JPL horizons to decimal degrees
-def dms_to_degrees(degrees, arcmin, arcsec):
+def dms_to_degrees(dms):
+    degrees,arcmin,arcsec = [float(i) for i in dms.split(':')]
      if degrees < 0.0:
           return degrees - (arcmin/60.0) - (arcsec/3600.0)
      else:
@@ -59,7 +60,7 @@ def linear_least_squares(x, y, plot =True, sigma_rejection = False):
         print 'Type Error: x and y should be numpy arrays, not lists.'
     m = (x*y-y.mean()*x).sum()/(x**2-x.mean()*x).sum()
     b = y.mean()-m*x.mean()
-    res = abs((m*x)+b-y)
+    res = (m*x)+b-y
     if plot:
         fig,ax = plt.subplots()
         ax.errorbar(x,y,yerr = np.std(res),color='b',fmt='o')
@@ -80,7 +81,7 @@ def linear_least_squares(x, y, plot =True, sigma_rejection = False):
                 y = np.delete(y,i)
         newm = (x*y-y.mean()*x).sum()/(x**2-x.mean()*x).sum()
         newb = y.mean()-m*x.mean()
-        newres = abs((newm*x)+newb-y)
+        newres = (newm*x)+newb-y
         ax.plot(np.linspace(0,5,10),newm*np.linspace(0,5,10) + newb,'g--',label = 'Sigma Rejection')
     plt.legend(loc='upper left')
     plt.show(fig)

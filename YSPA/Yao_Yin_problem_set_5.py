@@ -4,7 +4,7 @@ from visual import *
 from math import *
 
 sin, cos = np.sin, np.cos
-"""
+
 #1
 def ra_dec_to_vec(ra,dec):
     #ra, dec = '20 28 07.25', '-14 56 18.2' #Ra, Dec found on JPL horizons
@@ -37,7 +37,7 @@ diff_vec = Boulder_vec-NewHaven_vec #Eath radius = 6371 km
 new_dist = mag(diff_vec)
 
 #2d
-NAsteroid_vec = NewHaven_vec/mag(NewHaven_vec) * (4.488e+7+6371) #0.3AU = 4.488e+7 km, Vector that points from New Haven to the asteroid
+NAsteroid_vec = NewHaven_vec/mag(NewHaven_vec) * (4.488e+7) #0.3AU = 4.488e+7 km, Vector that points from New Haven to the asteroid
 BAsteroid_vec = NAsteroid_vec-diff_vec
 
 #2e
@@ -71,3 +71,4 @@ fig,ax = plt.subplots()
 ax.plot(t,J,'r-')
 ax.plot(t,R,'b-')
 plt.show(fig)
+"""

@@ -50,3 +50,59 @@ while True:
     marlough.pos += marlough_vel * delta_t #new position = old position + velocity*time
     marlough_trail.append(pos=marlough.pos,retain = 50000)
 """
+import numpy as np
+from visual import *
+from ephemPy import Ephemeris as Ephemeris_BC
+from ephempy_example import *
+
+t = 2457960.5
+end_t = t+1000000.
+ephem = Ephemeris('405')
+e = np.radians(23.43713)
+ecliptic = cylinder(pos=(0,0,0), axis = (0,0,1), radius = 10, length =0.01,opacity=0.1)
+#sun = sphere(pos = (0,0,0), radius = 0.01, color= color.yellow)
+"""
+planets = {'mercury':0,'venus':1,'earth':2,'mars':3,'jupiter':4,'saturn':5,'uranus':6,'neptune':7,'pluto':8,'moon':9}
+colors = [color.white,color.yellow,color.green,color.red,color.orange,color.cyan,color.magenta,color.blue,color.white,color.white]
+size = [0.01,0.02,0.05,0.03,0.1,0.08,0.05,0.05,0.05,0.01]
+trails = []
+spheres = []
+
+
+for i in range(10):
+    r = vector(ephem.position(t, i , 10))
+    r = rotate(r, -e, vector(1,0,0))
+    spheres.append(sphere(pos = r, radius = size[i], color = colors[i]))
+    trails.append(curve(color = colors[i]))
+
+
+
+while t<end_t:
+    rate(10000)
+    for i in range(10):
+        r = vector(ephem.position(t, i , 10))
+        r = rotate(r, -e, vector(1,0,0))
+        spheres[i].pos = r
+        trails[i].append(pos=r,retain=50000)
+    t += 1
+"""
+#earth = sphere(pos = (0,0,0),radius = 0.05, color = color.blue)
+earth_r = vector(ephem.position(t, 2 , 10))
+earth_r = rotate(earth_r, -e, vector(1,0,0))
+moon_r =  vector(ephem.position(t, 9 , 10))
+moon_r = rotate(moon_r, -e, vector(1,0,0))
+earth = sphere(pos = earth_r,radius = 0.05, color = color.blue)
+moon = sphere(pos = moon_r,radius = 0.02, color = color.white)
+#earth_trail = curve(color = color.blue)
+moon_trail = curve(color = color.white)
+while t<end_t:
+    rate(100)
+    earth_r = vector(ephem.position(t, 2 , 10))
+    earth_r = rotate(earth_r, -e, vector(1,0,0))
+    earth.pos = earth_r
+    earth_trail.append(earth_r,retain = 5000)
+    moon_r = vector(ephem.position(t, 9 , 10))
+    moon_r = rotate(moon_r, -e, vector(1,0,0))
+    moon.pos = moon_r
+    moon_trail.append(moon_r,retain = 5000)
+    t += 1
