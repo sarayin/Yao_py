@@ -23,9 +23,9 @@ def degrees_to_dms(degrees):
 #The function that will convert the Ra and Dec from JPL horizons to decimal degrees
 def dms_to_degrees(dms):
     degrees,arcmin,arcsec = [float(i) for i in dms.split(':')]
-     if degrees < 0.0:
+    if degrees < 0.0:
           return degrees - (arcmin/60.0) - (arcsec/3600.0)
-     else:
+    else:
           return degrees + (arcmin/60.0) + (arcsec/3600.0)
 
 def linear_least_squares(x, y, plot =True, sigma_rejection = False):

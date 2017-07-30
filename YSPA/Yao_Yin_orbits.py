@@ -6,12 +6,14 @@ from ephemPy import Ephemeris as Ephemeris_BC
 from ephempy_example import *
 import yao_master_script
 import pandas as pd
+import matplotlib.pyplot as plt
 
 k = 2*pi/365. #modified day per day
 r, rdot = vector(0.244,2.17,-0.445),vector(-0.731,-0.0041,0.0502)
 e = np.radians(23.43713) #tilt of the ecliptic
 c = 0.00200399 #AU/sec
 Rearth = 4.26349651E-5
+ephem = Ephemeris('405')
 
 def get_orbital_elements(r, rdot, mu =1., verbose = True):
     h = cross(r, rdot)
@@ -38,7 +40,7 @@ def get_orbital_elements(r, rdot, mu =1., verbose = True):
         print 'Longitude of Ascending Node (OMEGA) = ', OMEGA
         print 'Argument of Perihelion (omega) = ', omega
     return h, e, SLR, q, a, i, N, OMEGA, omega
-def plot_orbit(r,rdot,delta_t = 0.01*k,mu = 1.,end_t=5.*k):
+def get_orbit(r,rdot,delta_t = 0.01*k,mu = 1.,end_t=5.*k):
     t = 0
     h, e, SLR, q, a, i, N, OMEGA, omega = get_orbital_elements(r,rdot,verbose=False)
     xaixis = arrow(pos=(0,0,0),axis=(1,0,0),shaftwidth=0.01, length = 10, color = color.red)
@@ -135,7 +137,6 @@ def main():
         """
 
 def get_ephemeris(JD, r, lat = 41.3083, lon = -72.9279):
-    ephem = Ephemeris('405')
     Rg = vector(ephem.position(JD, 10, 2)) #vector that points from earth to sun, in equatorial coordinates
     """
     #correct for parallex
@@ -165,15 +166,105 @@ def get_ephemeris(JD, r, lat = 41.3083, lon = -72.9279):
 #JD on July1 , 2017 at 0:00 EDt is 2457935.666667
 #et_ephemeris(2457940.666667,plot_orbit(r,rdot)[0])
 #print get_ephemeris(2457940.666667,plot_orbit(r,rdot)[0])
-def f(r,rdot,tau):
-    deg_3 = 1-((tau**2)/(2*r**3))+((tau**3)*dot(r,rdot)/(2*r**5))
-    deg_4 = (1/24.)*((3/r**3)*((dot(rdot,rdot))-(1/r**3))-((15*dot(r,rdot)**2)/r**7)+(1/r**6))*(tau**4)
-    return deg_3 + deg_4
+def f(rmag,tau):
+    return 1-((tau**2)/(2*rmag**3))
 
-def g(r, rdot, tau):
-    return tau - (tau**3/(6*r**3)) + ((r+rdot)*tau**4/(4*r**5))
+def g(rmag,tau):
+    return tau - (tau**3/(6*rmag**3))
 
+def higher_f(r,rdot,rmag,tau):
+    higher_deg = (tau**3*dot(r,rdot)/(2*rmag**5))+((tau**4)/24.)*(((3/rmag**3)*(dot(rdot,rdot)/rmag**2)-(1/rmag**3))-((15*dot(r,rdot)**2)/rmag**7)+(1./rmag**6))
+    return f(rmag,tau) + higher_deg
+
+def higher_g(r,rdot,rmag,tau):
+    return g(rmag,tau) + tau**4*dot(r,rdot)/(4*rmag**5)
+
+def rho(r,JD):
+    vector(ephem.position(JD, 10, 2))
+    r = rotate(r, e, vector(1,0,0))
+    rho = Rg + r
+    return rho
+
+def rho_hat(ra,dec):
+    ra,dec = np.radians(ra),np.radians(dec)
+    return vector(cos(ra)*cos(dec),sin(ra)*cos(dec),sin(dec))
 
 asteroid_data = pd.read_table('2202_data.txt',sep = ',',names = ['time','ra','dec','mag'])
 asteroid_data['julian_days'] = pd.DatetimeIndex(asteroid_data['time']).to_julian_date()
-#asteroid_data['ra'],asteroid_data['dec'] = map(dms_to_degrees,asteroid_data['ra'])
+asteroid_data['ra'] = asteroid_data['ra'].apply(yao_master_script.dms_to_degrees)*15.
+asteroid_data['dec'] = asteroid_data['dec'].apply(yao_master_script.dms_to_degrees)
+
+#2a
+"""
+plt.title('RA vs. Dec')
+plt.plot(asteroid_data['ra'],asteroid_data['dec'],color = 'magenta',marker = '*',linestyle = 'None', markersize = 20)
+plt.xlabel('RA (degrees)')
+plt.ylabel('Dec (degrees)')
+plt.show()
+"""
+#Method of GAUSS
+def method_of_GAUSS(RA=asteroid_data['ra'],Dec=asteroid_data['dec'],Times=asteroid_data['julian_days'],index = [0,2,5],rmag0 = 1.5):
+    rho_hats = map(rho_hat,RA,Dec)
+    R_vectors = map(lambda d: vector(ephem.position(d,10,2)),Times)
+    rho_hat1,rho_hat2,rho_hat3 = [rho_hats[i] for i in index]
+    R1, R2, R3 = [R_vectors[i] for i in index]
+
+    tau1 = k*(Times[index[0]]-Times[index[1]])
+    tau3 = k*(Times[index[2]]-Times[index[1]])
+
+    f1 = f(rmag0,tau1)
+    g1 = g(rmag0,tau1)
+    f3 = f(rmag0,tau3)
+    g3 = g(rmag0,tau3)
+
+    converge = False
+    while converge == False :
+        a1 = g3/(f1*g3-f3*g1)
+        print 'a1 = ',a1
+        a3 = -g1/(f1*g3-f3*g1)
+        print 'a3 = ',a3
+
+        #triple products
+        tp1 = dot(cross(R1,rho_hat2),rho_hat3)
+        tp2 = dot(cross(R2,rho_hat2),rho_hat3)
+        tp3 = dot(cross(R3,rho_hat2),rho_hat3)
+
+        tp4 = dot(cross(rho_hat1,R1),rho_hat3)
+        tp5 = dot(cross(rho_hat1,R2),rho_hat3)
+        tp6 = dot(cross(rho_hat1,R3),rho_hat3)
+
+        tp7 = dot(cross(rho_hat2,R1),rho_hat1)
+        tp8 = dot(cross(rho_hat2,R2),rho_hat1)
+        tp9 = dot(cross(rho_hat2,R3),rho_hat1)
+
+        denom = dot(cross(rho_hat1,rho_hat2),rho_hat3)
+
+        rhomag1 = ((a1*tp1)-tp2+a3*tp3)/(a1*denom)
+        rhomag2 = ((a1*tp4)-tp5+a3*tp6)/(-1*denom)
+        rhomag3 = ((a1*tp7)-tp8+a3*tp9)/(a3*denom)
+
+        rho1, rho2, rho3 = rho_hat1*rhomag1,rho_hat2*rhomag2,rho_hat3*rhomag3
+        r1,r2,r3 = rho1-R1,rho2-R2,rho3-R3
+        rdot2 = (f3 * r1)/(g1*f3-g3*f1) - (f1*r3)/(g1*f3-g3*f1)
+
+        if abs(mag(r2)-rmag0) < 1E-12:
+            converge = True
+            print 'Converge successful!'
+            print 'r2 = ',r2,'rdot2 = ',rdot2,'mag(r2) = ',mag(r2)
+            return r2,rdot2,mag(r2)
+        else:
+            rmag0 = mag(r2)
+            f1 = higher_f(r2,rdot2,rmag0,tau1)
+            g1 = higher_g(r2,rdot2,rmag0,tau1)
+            f3 = higher_f(r2,rdot2,rmag0,tau3)
+            g3 = higher_g(r2,rdot2,rmag0,tau3)
+            print rho1, rho2, rho3
+            print r2,rdot2,mag(r2)
+
+    #print r2, rdot2
+r2,rdot2,rmag2 = method_of_GAUSS()
+#get_orbital_elements(r2,rdot2)
+r,rdot = get_orbit(r2,rdot2,delta_t = 0.01*k,mu = 1.,end_t=3.0*k) #get ephemeris for July 19 data
+print r, rdot
+#<0.704752, -1.5479, -0.429144> [ 0.51909868  0.63919601  0.15504233]
+print get_ephemeris(asteroid_data['julian_days'][3],r)
