@@ -4,22 +4,11 @@ from astropy.io import fits
 import pandas as pd
 from math import *
 
-def degrees_to_dms(degrees):
-    """
-    Parameters:
-    ----------
-    degrees: float
-        decimal degrees
-
-    Returns:
-    --------
-    String: Sexagecimal degrees in the form of 'hh:mm:ss'
-    """
-    totalSeconds = degrees * 60. * 60.
-    seconds = totalSeconds % 60
-    minutes = (totalSeconds / 60.) % 60
-    degrees = totalSeconds // (60. * 60.)
-    return '%.d:%.d:%.2f' % (degrees,minutes,seconds)
+def degrees_to_dms(angle):
+     degrees = int(angle)
+     arcmin = int((angle - int(angle))*60.0)
+     arcsec = (((angle - int(angle))*60.0) - arcmin)*60.0
+     return '%.d:%.d:%.2f' % (degrees,arcmin,arcsec)
 #The function that will convert the Ra and Dec from JPL horizons to decimal degrees
 def dms_to_degrees(dms):
     degrees,arcmin,arcsec = [float(i) for i in dms.split(':')]
