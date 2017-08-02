@@ -148,12 +148,12 @@ def main():
             break
 
 """
-def get_ephemeris(JD, r, rdot, delta_t = 0.01*k, mu = 1.,\
+def get_ephemeris(JD, r, rdot, delta_t = 0.1*k, mu = 1.,\
                 time_span =0.,lat = 41.3083, lon = -72.9279, equatorial = True):
     t = 0
     while abs(t-time_span*k) > 1.00E-6:
         step = delta_t
-        if t < end_t and t > t + 4.9*k:
+        if t < time_span*k and t > (time_span-1.)*k:
             step = delta_t/10000.
         r, rdot = rk4(r,rdot,step)
         t+= step
@@ -165,11 +165,13 @@ def get_ephemeris(JD, r, rdot, delta_t = 0.01*k, mu = 1.,\
     if not equatorial:
         r = rotate(r, e, vector(1,0,0)) #rotate r to equatorial coordinates
     rho = Rg + r  # original rho
+    """
     print rho,t,
     while t - (t-mag(rho)/c) > 0:
         r,rdot = rk4(r, rdot, -delta_t)
         t -= delta_t
     rho = Rg + r  #corrected rho
+    """
     rho_hat = rho/mag(rho) #unit vector
     #time_delta = mag(rho)/c #correct for speed of light
     #r += rdot * time_delta
@@ -232,9 +234,10 @@ def method_of_GAUSS(RA=asteroid_data['ra'],Dec=asteroid_data['dec'],Times=astero
     R_vectors = map(lambda d: vector(ephem.position(d,10,2)),Times)
     rho_hat1,rho_hat2,rho_hat3 = [rho_hats[i] for i in index]
     R1, R2, R3 = [R_vectors[i] for i in index]
-    tau1 = k*(Times[index[0]]-Times[index[1]])
+    Time1, Time2, Time3 = [Times[i] for i in index]
+    tau1 = k*(Time1-Time2)
     tau2 = 0.
-    tau3 = k*(Times[index[2]]-Times[index[1]])
+    tau3 = k*(Time3-Time2)
 
     f1 = f(rmag0,tau1)
     g1 = g(rmag0,tau1)
@@ -266,14 +269,22 @@ def method_of_GAUSS(RA=asteroid_data['ra'],Dec=asteroid_data['dec'],Times=astero
         rhomag2 = ((a1*tp4)-tp5+a3*tp6)/(-1*denom)
         rhomag3 = ((a1*tp7)-tp8+a3*tp9)/(a3*denom)
 
-        tau_c1 = k*(tau1 - (rhomag1/c))
-        tau_c2 = k*(tau2-(rhomag2/c))
-        tau_c3 = k*(tau3 - (rhomag3/c))
+        #Time Correction
+        Time_c1 = Time1 - (rhomag1/c)
+        Time_c2 = Time2 - (rhomag2/c)
+        Time_c3 = Time3 - (rhomag3/c)
+        new_Times = [Time_c1,Time_c2,Time_c3]
+        tau_c1 = k*Time_c1
+        tau_c2 = k*Time_c2
+        tau_c3 = k*Time_c3
+        new_R_vectors = map(lambda d: vector(ephem.position(d,10,2)),new_Times)
+        R1, R2, R3 = [new_R_vectors[i] for i in range(len(new_R_vectors))]
 
         rho1, rho2, rho3 = rho_hat1*rhomag1,rho_hat2*rhomag2,rho_hat3*rhomag3
         r1,r2,r3 = rho1-R1,rho2-R2,rho3-R3
         rdot2 = vector((f3 * r1)/(g1*f3-g3*f1) - (f1*r3)/(g1*f3-g3*f1))
         iteration +=1
+
         if abs(mag(r2)-rmag0) < 1E-12:
             converge = True
             print 'Converge successful!'
@@ -289,5 +300,5 @@ def method_of_GAUSS(RA=asteroid_data['ra'],Dec=asteroid_data['dec'],Times=astero
 r2,rdot2,rmag2,tau_c2 = method_of_GAUSS()
 print r2,rdot2, rmag2,tau_c2
 print get_orbital_elements(r2,rdot2)
-print get_ephemeris(asteroid_data['julian_days'][2],r2,rdot2)
+#print get_ephemeris(asteroid_data['julian_days'][2],r2,rdot2)
 print get_ephemeris(asteroid_data['julian_days'][3],r2,rdot2,time_span=3.)
