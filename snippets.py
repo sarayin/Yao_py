@@ -36,7 +36,8 @@ def datespan(startDate, endDate, delta=timedelta(days=1)):
 stime = datetime.strptime(start,"%Y-%m-%d %H:%M:%S").strftime('%Y-%m-%dT%H:%M:%S')
 # Between Specific times:
 masked_DF.between_time('11:00','13:00')
-
+#Complex formatting:
+datetime.strptime("December 12, 2012 at 07:07AM",'%B %d, %Y at %H:%M%p')
 #====================================================#
 # PANDAS
 #====================================================#
@@ -88,6 +89,14 @@ start = timer()
 # ...
 end = timer()
 print(end - start)
+#Assigning variables using a loop and a dictionary:
+elements = {}
+for x in range(3):
+    elements['rho_hat{0}'.format(x)]= rho_hats[index[x]]
+    elements['R{0}'.format(x)] = R_vectors[index[x]]
+# Unpack lists in calling functions:
+my_list_of_variables = [a,b,c]
+my_func(*my_list_of_variables) == my_func(a,b,c)
 #====================================================#
 # Matplotlib
 #====================================================#
