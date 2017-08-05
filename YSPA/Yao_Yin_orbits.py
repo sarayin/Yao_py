@@ -7,6 +7,7 @@ from ephempy_example import *
 import yao_master_script
 import pandas as pd
 import matplotlib.pyplot as plt
+#from tqdm import tqdm
 
 k = 2*pi/365. #modified day per day
 #r, rdot = vector(0.244,2.17,-0.445),vector(-0.731,-0.0041,0.0502)
@@ -107,59 +108,21 @@ def rk4(r, rdot, delta_t):
     v_next = v1 + (k1+2*k2+2*k3+k4)/6.0 * delta_t #modified acceleration
     r_next = r1 + (v1+2*v2+2*v3+v4)/6.0 * delta_t
     return r_next, v_next
-"""
-def main():
-    xaixis = arrow(pos=(0,0,0),axis=(1,0,0),shaftwidth=0.03, length = 10, color = color.blue)
-    yaixis = arrow(pos=(0,0,0),axis=(0,1,0),shaftwidth=0.03, length = 10, color = color.green)
-    zaixis = arrow(pos=(0,0,0),axis=(0,0,1),shaftwidth=0.03, length = 10,color = color.orange)
-    ecliptic = cylinder(pos=(0,0,0), axis = (0,0,1), radius = 10, length =0.01,opacity=0.1)
 
-    sun = sphere(pos = (0,0,0), radius = 0.5, color= color.yellow)
-
-    delta_t = 0.01
-
-    rk4_obj = sphere(pos = (0.9,0,0), radius = 0.1, color = color.red)
-    rk4_vel = vector(0,1.3,0) #velocity
-    rk4_trail = curve(color = color.red)
-
-    euler_obj = sphere(pos = (0.9,0,0), radius = 0.1, color = color.blue)
-    euler_vel = vector(0,1.3,0)
-    euler_trail = curve(color = color.blue)
-    t = 0
-    end_time = t + 5*k
-    while abs(t-end_time) > 1.00E-12:
-        rate(1000)
-        rk4_obj.pos, rk4_vel = rk4(rk4_obj.pos,rk4_vel,delta_t)
-        rk4_trail.append(pos=rk4_obj.pos,retain=50000)
-
-        euler_obj.pos, euler_vel = euler(euler_obj.pos, euler_vel, delta_t)
-        euler_trail.append(pos=euler_obj.pos,retain=50000)
-        t += delta_t
-        print rk4_obj.pos, rk4_vel, t
-
-        if t >= 8.09:
-            print "The asteroid has finished 1/2 of its sidereal period!"
-            print rk4_obj.pos, euler_obj.pos, euler_vel,t
-            break
-
-        if abs((mag(rk4_obj.pos)-mag(euler_obj.pos)))/mag(rk4_obj.pos) >= 0.01:
-            print "The prediction of the two methods differs by more than 1%!"
-            print rk4_obj.pos, euler_obj.pos, t
-            break
-
-"""
-def get_ephemeris(JD, r, rdot, delta_t = 0.1*k, mu = 1.,\
+def get_ephemeris(JD, r, rdot, delta_t = 0.01*k, mu = 1.,verbose=True,\
                 time_span =0.,lat = 41.3083, lon = -72.9279, equatorial = True):
     t = 0
-    while abs(t-time_span*k) > 1.00E-6:
+    if time_span <0:
+        delta_t = -delta_t
+    while abs(time_span*k-t) > 1.00E-6:
         step = delta_t
         if t < time_span*k and t > (time_span-1.)*k:
-            step = delta_t/10000.
+            step = delta_t/100.
         r, rdot = rk4(r,rdot,step)
         t+= step
         #print t , t/k
-    JD += time_span
-    Rg = vector(ephem.position(JD, 10, 2)) #vector that points from earth to sun, in equatorial coordinates
+    final_time = JD + time_span
+    Rg = vector(ephem.position(final_time, 10, 2)) #vector that points from earth to sun, in equatorial coordinates
     g = vector(cos(lon)*cos(lat),sin(lon)*cos(lat),sin(lat))*Rearth #correct for parallex
     Rt = Rg - g
     if not equatorial:
@@ -173,8 +136,6 @@ def get_ephemeris(JD, r, rdot, delta_t = 0.1*k, mu = 1.,\
     rho = Rg + r  #corrected rho
     """
     rho_hat = rho/mag(rho) #unit vector
-    #time_delta = mag(rho)/c #correct for speed of light
-    #r += rdot * time_delta
     dec = np.arcsin(rho_hat.z) #calculate RA and Dec
     ra = np.arctan(rho_hat.y/rho_hat.x)
     if rho_hat.x < 0: #Check Quadrants
@@ -182,15 +143,11 @@ def get_ephemeris(JD, r, rdot, delta_t = 0.1*k, mu = 1.,\
     ra = (degrees(ra)/15.)
     if ra <= 0.:
         ra += 24.
-    ra = yao_master_script.degrees_to_dms(ra)
-    print 'ra = ',ra #15 degrees per hour
-    print 'Dec = ',yao_master_script.degrees_to_dms(degrees(dec))
-    return (ra, dec),(r,rdot)
-#main()
-#plot_orbit(r,rdot)
-#JD on July1 , 2017 at 0:00 EDt is 2457935.666667
-#et_ephemeris(2457940.666667,plot_orbit(r,rdot)[0])
-#print get_ephemeris(2457940.666667,plot_orbit(r,rdot)[0])
+    dec = degrees(dec)
+    if verbose:
+        print 'ra = ',yao_master_script.degrees_to_dms(ra) #15 degrees per hour
+        print 'Dec = ',yao_master_script.degrees_to_dms(dec)
+    return (ra, dec),(r,rdot),final_time
 
 def f(rmag,tau):
     return 1-((tau**2)/(2*rmag**3))
@@ -215,13 +172,13 @@ def rho_hat(ra,dec):
     ra,dec = np.radians(ra),np.radians(dec)
     return vector(cos(ra)*cos(dec),sin(ra)*cos(dec),sin(dec))
 
+"""
 asteroid_data = pd.read_table('2202_data.txt',sep = ',',names = ['time','ra','dec','mag'])
 asteroid_data['julian_days'] = pd.DatetimeIndex(asteroid_data['time']).to_julian_date()
 asteroid_data['ra'] = asteroid_data['ra'].apply(yao_master_script.dms_to_degrees)*15.
 asteroid_data['dec'] = asteroid_data['dec'].apply(yao_master_script.dms_to_degrees)
 
 #2a
-"""
 plt.title('RA vs. Dec')
 plt.plot(asteroid_data['ra'],asteroid_data['dec'],color = 'magenta',marker = '*',linestyle = 'None', markersize = 20)
 plt.xlabel('RA (degrees)')
@@ -229,12 +186,12 @@ plt.ylabel('Dec (degrees)')
 plt.show()
 """
 #Method of GAUSS
-def method_of_GAUSS(RA=asteroid_data['ra'],Dec=asteroid_data['dec'],Times=asteroid_data['julian_days'],index = [0,2,5],rmag0 = 1.5):
-    rho_hats = map(rho_hat,RA,Dec)
-    R_vectors = map(lambda d: vector(ephem.position(d,10,2)),Times)
+def method_of_GAUSS(RAs,Decs,JDs,index,rmag0 = 1.5):
+    rho_hats = map(rho_hat,RAs,Decs)
+    R_vectors = map(lambda d: vector(ephem.position(d,10,2)),JDs)
     rho_hat1,rho_hat2,rho_hat3 = [rho_hats[i] for i in index]
     R1, R2, R3 = [R_vectors[i] for i in index]
-    Time1, Time2, Time3 = [Times[i] for i in index]
+    Time1, Time2, Time3 = [JDs[i] for i in index]
     tau1 = k*(Time1-Time2)
     tau2 = 0.
     tau3 = k*(Time3-Time2)
@@ -243,13 +200,12 @@ def method_of_GAUSS(RA=asteroid_data['ra'],Dec=asteroid_data['dec'],Times=astero
     g1 = g(rmag0,tau1)
     f3 = f(rmag0,tau3)
     g3 = g(rmag0,tau3)
-    #print f1,f3,g1,g3
+
     iteration = 0
     converge = False
     while converge == False :
         a1 = g3/(f1*g3-f3*g1)
         a3 = -g1/(f1*g3-f3*g1)
-
         #triple products
         tp1 = dot(cross(R1,rho_hat2),rho_hat3)
         tp2 = dot(cross(R2,rho_hat2),rho_hat3)
@@ -274,31 +230,108 @@ def method_of_GAUSS(RA=asteroid_data['ra'],Dec=asteroid_data['dec'],Times=astero
         Time_c2 = Time2 - (rhomag2/c)
         Time_c3 = Time3 - (rhomag3/c)
         new_Times = [Time_c1,Time_c2,Time_c3]
-        tau_c1 = k*Time_c1
-        tau_c2 = k*Time_c2
-        tau_c3 = k*Time_c3
+        #print new_Times
+        tau1 = k*(Time_c1-Time_c2)
+        tau3 = k*(Time_c3-Time_c2)
         new_R_vectors = map(lambda d: vector(ephem.position(d,10,2)),new_Times)
         R1, R2, R3 = [new_R_vectors[i] for i in range(len(new_R_vectors))]
-
         rho1, rho2, rho3 = rho_hat1*rhomag1,rho_hat2*rhomag2,rho_hat3*rhomag3
         r1,r2,r3 = rho1-R1,rho2-R2,rho3-R3
         rdot2 = vector((f3 * r1)/(g1*f3-g3*f1) - (f1*r3)/(g1*f3-g3*f1))
         iteration +=1
 
-        if abs(mag(r2)-rmag0) < 1E-12:
+        if abs(mag(r2)-rmag0) < 1E-6:
             converge = True
             print 'Converge successful!'
-            print 'r2 = ',r2,'rdot2 = ',rdot2,'mag(r2) = ',mag(r2),'tau_c2 = ',tau_c2
-            return r2, rdot2, mag(r2), tau_c2
+            print 'r2 = ',r2,'rdot2 = ',rdot2,'mag(r2) = ',mag(r2)#,'tau_c2 = ',tau_c2
+            return r2, rdot2, mag(r2)#, tau_c2
         else:
             rmag0 = mag(r2)
             f1 = higher_f(r2,rdot2,rmag0,tau1)
             g1 = higher_g(r2,rdot2,rmag0,tau1)
             f3 = higher_f(r2,rdot2,rmag0,tau3)
             g3 = higher_g(r2,rdot2,rmag0,tau3)
+            #print rmag0
 
-r2,rdot2,rmag2,tau_c2 = method_of_GAUSS()
-print r2,rdot2, rmag2,tau_c2
-print get_orbital_elements(r2,rdot2)
-#print get_ephemeris(asteroid_data['julian_days'][2],r2,rdot2)
-print get_ephemeris(asteroid_data['julian_days'][3],r2,rdot2,time_span=3.)
+def toDecimal(degrees, minutes, seconds):
+    minutes = np.true_divide(minutes,60)
+    seconds = np.true_divide(seconds,3600)
+    if degrees < 0:
+        return -(-degrees+minutes+seconds)
+    return degrees+minutes+seconds
+
+def rms(y,model):
+    return np.sqrt(np.mean((model-y)**2))
+
+marlough_data = pd.read_csv('marlough_data.csv',comment='#',names = ['JD','ra','dec','mag','lat','lon'])
+marlough_data['ra'] = marlough_data['ra'].apply(yao_master_script.dms_to_degrees)*15.
+marlough_data['dec'] = marlough_data['dec'].apply(yao_master_script.dms_to_degrees)
+
+"""
+#ra,dec,times = marlough_data['ra'],marlough_data['dec'],marlough_data['time']
+RAs = 15*np.array([toDecimal(20,29,36.163),toDecimal(20,31,59.804),toDecimal(20,34,18.734)])
+Decs = np.array([toDecimal(-13,15,35.69),toDecimal(-10,11,44.10),toDecimal(-6,51,26.98)])
+times = np.array([2457950.73745, 2457954.74516, 2457959.09353])
+"""
+index = [0,18,36]
+RAs = marlough_data['ra'].values
+Decs = marlough_data['dec'].values
+JDs = marlough_data['JD'].values
+Lats = marlough_data['lat'].values
+Lons = marlough_data['lon'].values
+r_mid,rdot_mid,rmag_mid = method_of_GAUSS(RAs,Decs,JDs,index =index)
+print r_mid, rdot_mid, rmag_mid
+print get_orbital_elements(r_mid,rdot_mid)
+ra,dec =  get_ephemeris(JDs[index[1]],r_mid,rdot_mid,lat = -30.1716, lon = -70.8009)[0]
+#print get_ephemeris(times[3],r2,rdot2,time_span=3.)
+
+# =====================
+# Model Optimization
+# =====================
+real_coords = marlough_data[['ra','dec']].values
+step_size=0.001
+step_num = 100
+rl = np.array([r_mid])
+rdotl = np.array([rdot_mid])
+predicted_coords = np.empty(shape = (0,2))
+for d in range(len(marlough_data)):
+    time_span = round(JDs[d]-JDs[index[1]],2)
+    lat = Lats[d]
+    lon = Lons[d]
+    ra,dec = get_ephemeris(JDs[index[1]],r_mid,rdot_mid,time_span=time_span,verbose=False,lat = lat, lon = lon)[0]
+    array = np.array([ra*15.,dec]) #convert to degrees
+    predicted_coords = np.vstack((predicted_coords,array))
+#ra_rms = rms(real_coords.T[0],predicted_coords.T[0])
+#dec_rms = rms(real_coords.T[1],predicted_coords.T[1])
+#new_rms = ra_rms+dec_rms
+rms0 = rms(real_coords,predicted_coords)
+rmsl = np.array([rms0])
+print rms0
+for i in range(step_num-1):
+    accept_num = 0
+    new_r = vector((rl[-1]+[np.random.normal(scale=step_size,size=3)])[0])
+    new_rdot = vector((rdotl[-1]+[np.random.normal(scale=step_size,size=3)])[0])
+    predicted_coords = np.empty(shape = (0,2))
+    print 'new_r = ',new_r,'new_rdot = ',new_rdot
+    for d in range(len(marlough_data)):
+        time_span = round(JDs[d]-JDs[index[1]],2)
+        lat = Lats[d]
+        lon = Lons[d]
+        ra,dec = get_ephemeris(JDs[index[1]],new_r,new_rdot,time_span=time_span,verbose=False,lat = lat, lon = lon)[0]
+        array = np.array([ra*15.,dec]) #convert to degrees
+        predicted_coords = np.vstack((predicted_coords,array))
+    #ra_rms = rms(real_coords.T[0],predicted_coords.T[0])
+    #dec_rms = rms(real_coords.T[1],predicted_coords.T[1])
+    #new_rms = ra_rms+dec_rms
+    new_rms = rms(real_coords,predicted_coords)
+    print new_rms
+    accept =  new_rms < rmsl[-1]
+    if accept:
+        accept_num +=1
+    elif not accept:
+        new_r,new_rdot, new_rms = rl[-1],rdotl[-1],rmsl[-1]
+    rl,rdotl,rmsl = np.vstack((rl,new_r)),np.vstack((rl,new_rdot)),np.vstack((rmsl,new_rms))
+
+
+#new_r =  <0.630579, -1.03445, -0.405584> new_rdot =  <0.88403, 0.46257, 0.399737>
+#0.237245492533
